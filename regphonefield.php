@@ -9,11 +9,11 @@ if (!defined('_CAN_LOAD_FILES_')) {
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-class Regphonefield extends Module
+class Regrutfield extends Module
 {
     public function __construct()
     {
-        $this->name          = 'regphonefield';
+        $this->name          = 'regrutfield';
         $this->tab           = 'front_office_features';
         $this->version       = '1.1.0';
         $this->author        = 'Taoufiq Ait Ali';
@@ -22,8 +22,8 @@ class Regphonefield extends Module
         
         parent::__construct();
         
-        $this->displayName = $this->l('phone field for registration');
-        $this->description = $this->l('Add phone field to registration form.');
+        $this->displayName = $this->l('rut field for registration');
+        $this->description = $this->l('Add rut field to registration form.');
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
     }
     public function install()
@@ -40,7 +40,7 @@ class Regphonefield extends Module
         }
 
         $res =(bool)Db::getInstance()->execute(
-            'ALTER TABLE `'._DB_PREFIX_.'customer`  ADD `phone` varchar(64) NULL'
+            'ALTER TABLE `'._DB_PREFIX_.'customer`  ADD `rut` varchar(64) NULL'
         );
         
         return $result;
@@ -53,7 +53,7 @@ class Regphonefield extends Module
             return false;
         }
         $res =(bool)Db::getInstance()->execute(
-            'ALTER TABLE `'._DB_PREFIX_.'customer` DROP `phone`'
+            'ALTER TABLE `'._DB_PREFIX_.'customer` DROP `rut`'
         );
         return true;
     }
@@ -61,9 +61,9 @@ class Regphonefield extends Module
     public function hookAdditionalCustomerFormFields($params)
     {
         $formField = new FormField();
-        $formField->setName('phone');
+        $formField->setName('rut');
         $formField->setType('text');
-        $formField->setLabel($this->l('Phone'));
+        $formField->setLabel($this->l('rut'));
         $formField->setRequired(false);
         return array($formField);
     }
@@ -71,16 +71,18 @@ class Regphonefield extends Module
     public function hookActionCustomerAccountAdd($params)
     {   
         $customerId =$params['newCustomer']->id;
-        $phone= Tools::getValue('phone','');
-        return (bool) Db::getInstance()->execute('update '._DB_PREFIX_.'customer set phone=\''.pSQL($phone)."' WHERE id_customer=".(int) $customerId);
+        $rut= Tools::getValue('rut','');
+        return (bool) Db::getInstance()->execute('update '._DB_PREFIX_.'customer set rut=\''.pSQL($rut)."' WHERE id_customer=".(int) $customerId);
     }
     public function hookActionAdminCustomersListingFieldsModifier($params)
     {
-        $params['fields']['phone'] = array(
-            'title' => $this->l('Phone'),
+        $params['fields']['rut'] = array(
+            'title' => $this->l('rut'),
             'align' => 'center',
         );
     }
+
+    
 public function hookActionCustomerGridDefinitionModifier(array $params)
 {
     /** @var GridDefinitionInterface $definition */
@@ -90,18 +92,18 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
         ->getColumns()
         ->addAfter(
             'optin',
-            (new DataColumn('phone'))
-                ->setName($this->l('telephone'))
+            (new DataColumn('rut'))
+                ->setName($this->l('telerut'))
                 ->setOptions([
-                    'field' => 'phone',
+                    'field' => 'rut',
                 ])
         )
     ;
 
     // For search filter
     $definition->getFilters()->add(
-        (new Filter('phone', TextType::class))
-        ->setAssociatedColumn('phone')
+        (new Filter('rut', TextType::class))
+        ->setAssociatedColumn('rut')
     );
 }
 
@@ -114,7 +116,7 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
         $searchCriteria = $params['search_criteria'];
 
         $searchQueryBuilder->addSelect(
-            'IF(wcm.`phone` IS NULL,0,wcm.`phone`) AS `phone`'
+            'IF(wcm.`rut` IS NULL,0,wcm.`rut`) AS `rut`'
         );
 
         $searchQueryBuilder->leftJoin(
@@ -124,17 +126,17 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
             'wcm.`id_customer` = c.`id_customer`'
         );
 
-        if ('phone' === $searchCriteria->getOrderBy()) {
-            $searchQueryBuilder->orderBy('wcm.`phone`', $searchCriteria->getOrderWay());
+        if ('rut' === $searchCriteria->getOrderBy()) {
+            $searchQueryBuilder->orderBy('wcm.`rut`', $searchCriteria->getOrderWay());
         }
 
         foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if ('phone' === $filterName) {
-                $searchQueryBuilder->andWhere('wcm.`phone` = :phone');
-                $searchQueryBuilder->setParameter('phone', $filterValue);
+            if ('rut' === $filterName) {
+                $searchQueryBuilder->andWhere('wcm.`rut` = :rut');
+                $searchQueryBuilder->setParameter('rut', $filterValue);
 
                 if (!$filterValue) {
-                    $searchQueryBuilder->orWhere('wcm.`phone` IS NULL');
+                    $searchQueryBuilder->orWhere('wcm.`rut` IS NULL');
                 }
             }
         }
