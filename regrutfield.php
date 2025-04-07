@@ -38,10 +38,12 @@ class Regrutfield extends Module
         ) {
              $result = false;
         }
-
-        $res =(bool)Db::getInstance()->execute(
-            'ALTER TABLE `'._DB_PREFIX_.'customer`  ADD `rut` varchar(64) NULL'
+        $res = (bool)Db::getInstance()->execute(
+            'ALTER TABLE `'._DB_PREFIX_.'customer`  
+                ADD `rut` VARCHAR(64) NULL,
+                ADD `phone` VARCHAR(64) NULL'
         );
+        
         
         return $result;
     }
@@ -52,34 +54,61 @@ class Regrutfield extends Module
         ) {
             return false;
         }
-        $res =(bool)Db::getInstance()->execute(
-            'ALTER TABLE `'._DB_PREFIX_.'customer` DROP `rut`'
+        $res = (bool)Db::getInstance()->execute(
+            'ALTER TABLE `'._DB_PREFIX_.'customer` 
+                DROP `rut`,
+                DROP `phone`'
         );
+        
         return true;
     }
 
     public function hookAdditionalCustomerFormFields($params)
     {
-        $formField = new FormField();
-        $formField->setName('rut');
-        $formField->setType('text');
-        $formField->setLabel($this->l('rut'));
-        $formField->setRequired(false);
-        return array($formField);
+        $formFieldRut = new FormField();
+        $formFieldRut->setName('rut')
+                     ->setType('text')
+                     ->setLabel($this->l('RUT'))
+                     ->setRequired(false);
+        
+        $formFieldPhone = new FormField();
+        $formFieldPhone->setName('phone')
+                       ->setType('text')
+                       ->setLabel($this->l('Teléfono'))
+                       ->setRequired(false);
+        
+        return [$formFieldRut, $formFieldPhone];
+        
     }
     
     public function hookActionCustomerAccountAdd($params)
     {   
-        $customerId =$params['newCustomer']->id;
-        $rut= Tools::getValue('rut','');
-        return (bool) Db::getInstance()->execute('update '._DB_PREFIX_.'customer set rut=\''.pSQL($rut)."' WHERE id_customer=".(int) $customerId);
+        $customerId = (int)$params['newCustomer']->id;
+        $rut = Tools::getValue('rut', '');
+        $phone = Tools::getValue('phone', '');
+        
+        return Db::getInstance()->update(
+            'customer',
+            [
+                'rut' => pSQL($rut),
+                'phone' => pSQL($phone),
+            ],
+            'id_customer = ' . $customerId
+        );
+        
     }
     public function hookActionAdminCustomersListingFieldsModifier($params)
     {
-        $params['fields']['rut'] = array(
-            'title' => $this->l('rut'),
+        $params['fields']['rut'] = [
+            'title' => $this->l('RUT'),
             'align' => 'center',
-        );
+        ];
+        
+        $params['fields']['phone'] = [
+            'title' => $this->l('Teléfono'),
+            'align' => 'center',
+        ];
+        
     }
 
     
@@ -88,22 +117,30 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
     /** @var GridDefinitionInterface $definition */
     $definition = $params['definition'];
 
-    $definition
-        ->getColumns()
-        ->addAfter(
-            'optin',
-            (new DataColumn('rut'))
-                ->setName($this->l('telerut'))
-                ->setOptions([
-                    'field' => 'rut',
-                ])
-        )
-    ;
+    $definition->getColumns()->addAfter(
+        'optin',
+        (new DataColumn('rut'))
+            ->setName($this->l('RUT'))
+            ->setOptions(['field' => 'rut'])
+    );
+    
+    $definition->getColumns()->addAfter(
+        'rut',
+        (new DataColumn('phone'))
+            ->setName($this->l('Teléfono'))
+            ->setOptions(['field' => 'phone'])
+    );
+    
 
     // For search filter
     $definition->getFilters()->add(
         (new Filter('rut', TextType::class))
         ->setAssociatedColumn('rut')
+    );
+    // For search filter
+    $definition->getFilters()->add(
+        (new Filter('phone', TextType::class))
+        ->setAssociatedColumn('phone')
     );
 }
 
@@ -116,8 +153,10 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
         $searchCriteria = $params['search_criteria'];
 
         $searchQueryBuilder->addSelect(
-            'IF(wcm.`rut` IS NULL,0,wcm.`rut`) AS `rut`'
+            'IF(wcm.`rut` IS NULL, 0, wcm.`rut`) AS `rut`,' .
+            'IF(wcm.`phone` IS NULL, 0, wcm.`phone`) AS `phone`'
         );
+        
 
         $searchQueryBuilder->leftJoin(
             'c',
