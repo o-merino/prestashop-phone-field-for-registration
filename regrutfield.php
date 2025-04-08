@@ -35,6 +35,8 @@ class Regrutfield extends Module
             || !$this->registerHook('actionAdminCustomersListingFieldsModifier')
             || !$this->registerHook('actionCustomerGridDefinitionModifier')
             || !$this->registerHook('actionCustomerGridQueryBuilderModifier')
+            //|| !$this->registerHook('validateCustomerFormFields')
+            || !$this->registerHook('displayHeader')
         ) {
              $result = false;
         }
@@ -63,39 +65,47 @@ class Regrutfield extends Module
         return true;
     }
 
+    public function hookDisplayHeader($params) {
+        // Solo cargar el JS en la página de registro (authentication) para eficiencia
+        if ($this->context->controller->php_self === 'authentication') {
+            $this->context->controller->registerJavascript(
+                'module-'.$this->name.'-rut',                         // identificador único
+                'modules/'.$this->name.'/views/js/regrutfield.js',       // ruta al archivo JS del módulo
+                ['position' => 'bottom', 'priority' => 150]
+            );
+        }
+    }
+    
     public function hookAdditionalCustomerFormFields($params)
     {
         $formFieldRut = new FormField();
         $formFieldRut->setName('rut')
-                     ->setType('text')
-                     ->addAvailableValue('placeholder', 'Ej: 12345678-9')
-                     ->addAvailableValue('pattern', '^\d{7,8}-[0-9Kk]$')
-                     ->addAvailableValue('title', $this->l('Debe ingresar un RUT válido.'))
-                     ->setLabel($this->l('RUT'))
-                     ->setRequired(true);
-        
+            ->setType('text')
+            ->addAvailableValue('placeholder', 'Ej: 12345678-9')
+            ->addAvailableValue('pattern', '^\\d{7,8}-[0-9Kk]$') // Nota: doble barra \\d para que funcione
+            ->addAvailableValue('title', $this->l('Debe ingresar un RUT válido (Ej: 12345678-9).'))
+            ->setLabel($this->l('RUT'))
+            ->setRequired(true);
+    
         $formFieldPhone = new FormField();
         $formFieldPhone->setName('phone')
-                       ->setType('text')
-                       ->setLabel($this->l('Teléfono'))
-                       ->setRequired(true);
-        
-        return [$formFieldRut, $formFieldPhone];
-        
-    }
+            ->setType('text')
+            ->addAvailableValue('placeholder', 'Ej: 912345678')
+            ->addAvailableValue('pattern', '^[0-9]{6,15}$') // entre 6 y 15 dígitos
+            ->addAvailableValue('title', $this->l('Debe ingresar solo números. Entre 6 y 15 dígitos.'))
+            ->setLabel($this->l('Teléfono'))
+            ->setRequired(true);
+            
     
+        return [$formFieldRut, $formFieldPhone];
+    }
+
     public function hookActionCustomerAccountAdd($params)
-    {   
+    {
         $customerId = (int)$params['newCustomer']->id;
         $rut = Tools::getValue('rut', '');
         $phone = Tools::getValue('phone', '');
-
-        // ✅ Validar formato del RUT con regex
-        if (!empty($rut) && !$this->isRutFormatoValido($rut)) {
-            $this->context->controller->errors[] = $this->l('El RUT ingresado no tiene un formato válido. Ej: 12345678-9');
-            return false;
-        }
-
+    
         return Db::getInstance()->update(
             'customer',
             [
@@ -104,8 +114,8 @@ class Regrutfield extends Module
             ],
             'id_customer = ' . $customerId
         );
-        
     }
+
     public function hookActionAdminCustomersListingFieldsModifier($params)
     {
         $params['fields']['rut'] = [
