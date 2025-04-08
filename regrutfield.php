@@ -68,14 +68,17 @@ class Regrutfield extends Module
         $formFieldRut = new FormField();
         $formFieldRut->setName('rut')
                      ->setType('text')
+                     ->addAvailableValue('placeholder', 'Ej: 12345678-9')
+                     ->addAvailableValue('pattern', '^\d{7,8}-[0-9Kk]$')
+                     ->addAvailableValue('title', $this->l('Debe ingresar un RUT válido.'))
                      ->setLabel($this->l('RUT'))
-                     ->setRequired(false);
+                     ->setRequired(true);
         
         $formFieldPhone = new FormField();
         $formFieldPhone->setName('phone')
                        ->setType('text')
                        ->setLabel($this->l('Teléfono'))
-                       ->setRequired(false);
+                       ->setRequired(true);
         
         return [$formFieldRut, $formFieldPhone];
         
@@ -86,7 +89,13 @@ class Regrutfield extends Module
         $customerId = (int)$params['newCustomer']->id;
         $rut = Tools::getValue('rut', '');
         $phone = Tools::getValue('phone', '');
-        
+
+        // ✅ Validar formato del RUT con regex
+        if (!empty($rut) && !$this->isRutFormatoValido($rut)) {
+            $this->context->controller->errors[] = $this->l('El RUT ingresado no tiene un formato válido. Ej: 12345678-9');
+            return false;
+        }
+
         return Db::getInstance()->update(
             'customer',
             [
@@ -112,37 +121,37 @@ class Regrutfield extends Module
     }
 
     
-public function hookActionCustomerGridDefinitionModifier(array $params)
-{
-    /** @var GridDefinitionInterface $definition */
-    $definition = $params['definition'];
+    public function hookActionCustomerGridDefinitionModifier(array $params)
+    {
+        /** @var GridDefinitionInterface $definition */
+        $definition = $params['definition'];
 
-    $definition->getColumns()->addAfter(
-        'optin',
-        (new DataColumn('rut'))
-            ->setName($this->l('RUT'))
-            ->setOptions(['field' => 'rut'])
-    );
-    
-    $definition->getColumns()->addAfter(
-        'rut',
-        (new DataColumn('phone'))
-            ->setName($this->l('Teléfono'))
-            ->setOptions(['field' => 'phone'])
-    );
-    
+        $definition->getColumns()->addAfter(
+            'optin',
+            (new DataColumn('rut'))
+                ->setName($this->l('RUT'))
+                ->setOptions(['field' => 'rut'])
+        );
+        
+        $definition->getColumns()->addAfter(
+            'rut',
+            (new DataColumn('phone'))
+                ->setName($this->l('Teléfono'))
+                ->setOptions(['field' => 'phone'])
+        );
+        
 
-    // For search filter
-    $definition->getFilters()->add(
-        (new Filter('rut', TextType::class))
-        ->setAssociatedColumn('rut')
-    );
-    // For search filter
-    $definition->getFilters()->add(
-        (new Filter('phone', TextType::class))
-        ->setAssociatedColumn('phone')
-    );
-}
+        // For search filter
+        $definition->getFilters()->add(
+            (new Filter('rut', TextType::class))
+            ->setAssociatedColumn('rut')
+        );
+        // For search filter
+        $definition->getFilters()->add(
+            (new Filter('phone', TextType::class))
+            ->setAssociatedColumn('phone')
+        );
+    }
 
 	public function hookActionCustomerGridQueryBuilderModifier(array $params)
     {
@@ -180,5 +189,10 @@ public function hookActionCustomerGridDefinitionModifier(array $params)
             }
         }
     }
+    private function isRutFormatoValido($rut)
+    {
+        return preg_match('/^\d{7,8}-[0-9Kk]$/', $rut);
+    }
+    
 
 }

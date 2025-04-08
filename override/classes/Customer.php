@@ -13,14 +13,14 @@ class Customer extends CustomerCore
         self::$definition['fields']['rut'] = array(
             'type' => self::TYPE_STRING,
             'validate' => 'isGenericName',
-            'required' => false,
+            'required' => true,
             'size' => 64
         );
 
         self::$definition['fields']['phone'] = array(
             'type' => self::TYPE_STRING,
             'validate' => 'isGenericName',
-            'required' => false,
+            'required' => true,
             'size' => 64
         );
 
